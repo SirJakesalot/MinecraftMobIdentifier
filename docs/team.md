@@ -6,11 +6,11 @@ title:  Team
 # {{ page.title }}
 
 
-## USER 1
+## Jacob Armentrout
+***UCI Net ID***: jarmentr
+
+## Max Shapiro
 ***UCI Net ID***: ucinetid
 
-## USER 2
-***UCI Net ID***: ucinetid
-
-## USER 3
+## Brandon Plihal
 ***UCI Net ID***: ucinetid
