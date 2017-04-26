@@ -90,5 +90,6 @@ ENV/
 
 # image downloaders
 examples/pics
+examples/google_search
 
 data
