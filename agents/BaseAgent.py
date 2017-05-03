@@ -12,12 +12,13 @@ import MalmoPython
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 
-class BaseAgent:
+class BaseAgent(object):
     '''General Malmo Agent'''
 
     # out of the box configurations
+    # all values that are None have to be specified by the user
     DEFAULT_CONFIG = {
-        'misson_xml': None,
+        'mission_file': None,
         'recording': {
             'path': 'data.tgz',
             'fps': 10,
@@ -27,22 +28,17 @@ class BaseAgent:
     }
 
     def __init__(self, config):
+        # configuration management
         self.config = self.DEFAULT_CONFIG
         self.reconfigure(config)
-        self.setupLogging()
-        self.getMissionXML()
-        self.setupMission()
-        self.setupMissionRecording()
-        self.setupAgentHost()
-
-        self.startMission()
 
     def reconfigure(self, config):
         '''Update configuration settings'''
         new_config = deepcopy(self.config)
 
         for setting, val in config.items():
-            assert setting in self.DEFAULT_CONFIG
+            if setting not in self.DEFAULT_CONFIG:
+                raise Exception('Invalid reconfig: {0} is an unknown setting'.format(setting))
             new_config[setting] = val
 
         for setting, val in new_config.items():
@@ -50,6 +46,15 @@ class BaseAgent:
                 raise Exception('Invalid reconfig: {0} is required to be set!'.format(setting))
 
         self.config = new_config
+
+        # mission prerequisites
+        self.setupLogging()
+        self.getMissionXML()
+
+        # create mission attributes
+        self.setupMission()
+        self.setupMissionRecording()
+        self.setupAgentHost()
 
     def setupLogging(self):
         '''Setup log reporting'''
@@ -61,14 +66,9 @@ class BaseAgent:
         self.logger.handlers = []
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    def setupAgentHost(self):
-        self.agent_host = MalmoPython.AgentHost()
-        # self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.KEEP_ALL_OBSERVATIONS)
-        # self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.KEEP_ALL_FRAMES)
-
     def getMissionXML(self):
         '''Read mission xml'''
-        mission_file = self.config['mission_xml']
+        mission_file = self.config['mission_file']
         with open(mission_file, 'r') as f:
             print('Loading mission from', mission_file)
             self.mission_xml = f.read()
@@ -87,6 +87,11 @@ class BaseAgent:
             self.mission_record.recordMP4(recording['fps'], recording['bit_rate'])
         else:
             self.mission_record = MalmoPython.MissionRecordSpec()
+
+    def setupAgentHost(self):
+        self.agent_host = MalmoPython.AgentHost()
+        # self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.KEEP_ALL_OBSERVATIONS)
+        # self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.KEEP_ALL_FRAMES)
 
     def startMission(self):
         '''Attempt to start mission with the given configurations'''

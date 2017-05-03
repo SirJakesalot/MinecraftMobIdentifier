@@ -54,31 +54,6 @@ class GoogleImageExtractor:
         
         self.config = self.DEFAULT_CONFIG
         self.reconfigure(config)
-        
-        # used to determine unique links
-        # e.g. {links}
-        self.links = set()
-        
-        # query buckets filled with links
-        # e.g. {query_path: {links}}
-        self.query_links = defaultdict(set)
-        
-        debug = self.config['debug']
-        queries = self.config['queries']
-        google_url = self.config['google_url']
-        dl_path = self.config['dl_path']
-        
-        # build urls with the queries
-        tokenized = [query.strip().replace(' ', '+') for query in queries]
-        self.urls = [google_url.format(tokes) for tokes in tokenized]
-        
-        # build save paths with the queries
-        underscored = [query.strip().replace(' ', '_') for query in queries]
-        self.query_paths = [os.path.join(dl_path, path) for path in underscored]
-        
-        if debug:
-            for setting, val in self.config.items():
-                print('{0}: {1}'.format(setting, val))
 
     def reconfigure(self, config):
         '''Update configuration settings'''
@@ -93,7 +68,32 @@ class GoogleImageExtractor:
                 raise Exception('Invalid reconfig: {0} is required to be set!'.format(setting))
         
         self.config = new_config
-        
+
+        # used to determine unique links
+        # e.g. {links}
+        self.links = set()
+
+        # query buckets filled with links
+        # e.g. {query_path: {links}}
+        self.query_links = defaultdict(set)
+
+        debug = self.config['debug']
+        queries = self.config['queries']
+        google_url = self.config['google_url']
+        dl_path = self.config['dl_path']
+
+        # build urls with the queries
+        tokenized = [query.strip().replace(' ', '+') for query in queries]
+        self.urls = [google_url.format(tokes) for tokes in tokenized]
+
+        # build save paths with the queries
+        underscored = [query.strip().replace(' ', '_') for query in queries]
+        self.query_paths = [os.path.join(dl_path, path) for path in underscored]
+
+        if debug:
+            for setting, val in self.config.items():
+                print('{0}: {1}'.format(setting, val))
+
     def exec_queries(self):
         '''Launch firefox driver and scrape images for each query'''
         debug = self.config['debug']

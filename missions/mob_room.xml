@@ -2,7 +2,7 @@
 <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <!-- TODO: finish implementing the world -->
   <About>
-    <Summary>Create a yard of different.</Summary>
+    <Summary>A small room filled with up to 3 mobs.</Summary>
   </About>
 
   <ModSettings>
@@ -23,27 +23,26 @@
         <DrawingDecorator>
             <!-- coordinates for cuboid are inclusive -->
             <!-- area limits -->
-            <DrawCuboid x1="-2" y1="46" z1="-2" x2="6" y2="50" z2="20" type="air" />
+            <!-- y=height -->
+            <DrawCuboid x1="-2" y1="46" z1="0" x2="6" y2="50" z2="4" type="air" />
 
             <!-- grass floor -->
-            <DrawCuboid x1="-2" y1="45" z1="-2" x2="6" y2="45" z2="20" type="grass" />
+            <DrawCuboid x1="-2" y1="45" z1="0" x2="6" y2="45" z2="4" type="grass" />
 
             <!-- glowstone ceiling lights -->
-            <DrawLine x1="6" y1="50" z1="-2" x2="6" y2="50" z2="20" type="glowstone" />
-            <DrawLine x1="-2" y1="50" z1="-2" x2="-2" y2="50" z2="20" type="glowstone" />
-            <DrawLine x1="2" y1="50" z1="-2" x2="2" y2="50" z2="20" type="glowstone" />
+            <DrawLine x1="6" y1="50" z1="0" x2="6" y2="50" z2="4" type="glowstone" />
+            <DrawLine x1="-2" y1="50" z1="0" x2="-2" y2="50" z2="4" type="glowstone" />
+            <DrawLine x1="2" y1="50" z1="0" x2="2" y2="50" z2="4" type="glowstone" />
 
             <!-- glowstone floor lights -->
-            <DrawLine x1="6" y1="45" z1="-2" x2="6" y2="45" z2="20" type="glowstone" />
-            <DrawLine x1="-2" y1="45" z1="-2" x2="-2" y2="45" z2="20" type="glowstone" />
-            <DrawLine x1="2" y1="45" z1="-2" x2="2" y2="45" z2="20" type="glowstone" />
+            <DrawLine x1="6" y1="45" z1="0" x2="6" y2="45" z2="4" type="glowstone" />
+            <DrawLine x1="-2" y1="45" z1="0" x2="-2" y2="45" z2="4" type="glowstone" />
+            <DrawLine x1="2" y1="45" z1="0" x2="2" y2="45" z2="4" type="glowstone" />
 
             <!-- place mobs -->
-            <DrawEntity x="3"  y="46" z="7" type="Pig" />
-            <DrawEntity x="3"  y="46" z="9" type="Cow" />
-            <DrawEntity x="3"  y="46" z="11" type="Chicken" />
+            {0}
         </DrawingDecorator>
-      <ServerQuitFromTimeUp timeLimitMs="100"/>
+      <ServerQuitFromTimeUp timeLimitMs="10000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
   </ServerSection>
@@ -51,7 +50,10 @@
   <AgentSection mode="Survival">
     <Name>Cristina</Name>
     <AgentStart>
-      <Placement x="2.5" y="46.0" z="1.5" pitch="0" yaw="0"/>
+      <Placement x="2.5" y="46.0" z="1.5" pitch="20" yaw="0"/>
+      <Inventory>
+          <InventoryObject slot="0" type="{1}" quantity="1"/>
+      </Inventory>
     </AgentStart>
     <AgentHandlers>
       <ObservationFromFullStats/>
@@ -60,16 +62,7 @@
           <Height>480</Height>
       </VideoProducer>
       <ContinuousMovementCommands turnSpeedDegs="360"/>
-      <AbsoluteMovementCommands/>
-      <!--<DiscreteMovementCommands>-->
-          <!--<ModifierList type="deny-list">-->
-            <!--<command>attack</command>-->
-          <!--</ModifierList>-->
-      <!--</DiscreteMovementCommands>-->
-      <!--<RewardForCollectingItemType>-->
-        <!--<Item type="porkchop" reward="100.0"/>-->
-      <!--</RewardForCollectingItemType>-->
-      <!--<RewardForSendingCommand reward="-1"/>-->
+      <DiscreteMovementCommands/>
     </AgentHandlers>
   </AgentSection>
 
