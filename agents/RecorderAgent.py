@@ -8,7 +8,7 @@ import numpy as np
 from BaseAgent import BaseAgent
 
 class RecorderAgent(BaseAgent):
-    imgCounter = 0
+    imgCounter = 1
     imgDir = 'imgs'
     def __init__(self, config):
         BaseAgent.__init__(self, config)
@@ -47,7 +47,7 @@ class RecorderAgent(BaseAgent):
 
 #if __name__ == '__main__':
 config = {
-    'mission_file': r'C:\Users\armentrout\Documents\PyCharm\MinecraftObjectRecognition\missions\no_mob_world.xml',
+    'mission_file': r'C:\Users\armentrout\Documents\PyCharm\MinecraftObjectRecognition\missions\barn_yard.xml',
 }
 ra = RecorderAgent(config)
 ra.startMission()
