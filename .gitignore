@@ -92,5 +92,8 @@ ENV/
 examples/pics
 examples/google_search
 
-data
-*/imgs/*
+agents/imgs/*
+agents/mission_records
+agents/ffmpeg.out
+agent/data.tgz
+
