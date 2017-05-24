@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- TODO: finish implementing the world -->
+  <About>
+    <Summary>Create a yard of different.</Summary>
+  </About>
+
+
+
+  <ServerSection>
+      <ServerInitialConditions>
+            <Time>
+                <StartTime>6000</StartTime>
+                <AllowPassageOfTime>false</AllowPassageOfTime>
+            </Time>
+            <Weather>clear</Weather>
+            <AllowSpawning>false</AllowSpawning>
+      </ServerInitialConditions>
+    <ServerHandlers>
+      <FlatWorldGenerator generatorString="3;7,220*1,5*3,2;3;,biome_1" forceReset="true"/>
+        <DrawingDecorator>
+            <!-- coordinates for cuboid are inclusive -->
+            <!-- area limits -->
+            
+
+
+            <!-- place mobs -->
+            <DrawEntity x="-10"  y="227" z="-2" type="Pig" />
+            <DrawEntity x="-8"  y="227" z="-2" type="Cow" />
+            <DrawEntity x="-6"  y="227" z="-2" type="Chicken" />
+        </DrawingDecorator>
+      <ServerQuitFromTimeUp timeLimitMs="30000"/>
+      <ServerQuitWhenAnyAgentFinishes/>
+    </ServerHandlers>
+  </ServerSection>
+
+  <AgentSection mode="Survival">
+    <Name>Cristina</Name>
+    <AgentStart>
+      <!--Placement x="2.5" y="46.0" z="1.5" pitch="0" yaw="0"/-->
+    </AgentStart>
+    <AgentHandlers>
+      <ObservationFromNearbyEntities>
+        <Range name="entities" xrange="8" yrange="2" zrange="22" />
+      </ObservationFromNearbyEntities>
+      <ObservationFromFullStats/>
+      <VideoProducer want_depth="false">
+          <Width>640</Width>
+          <Height>480</Height>
+      </VideoProducer>
+      <ContinuousMovementCommands turnSpeedDegs="360"/>
+      <AbsoluteMovementCommands/>
+      <!--<DiscreteMovementCommands>-->
+          <!--<ModifierList type="deny-list">-->
+            <!--<command>attack</command>-->
+          <!--</ModifierList>-->
+      <!--</DiscreteMovementCommands>-->
+      <!--<RewardForCollectingItemType>-->
+        <!--<Item type="porkchop" reward="100.0"/>-->
+      <!--</RewardForCollectingItemType>-->
+      <!--<RewardForSendingCommand reward="-1"/>-->
+    </AgentHandlers>
+  </AgentSection>
+
+</Mission>
