@@ -3,6 +3,18 @@ layout: default
 title:  Status
 ---
 
+Please reference our <a href="index.md">home page</a> for more information.
+
+## Goal
+
+Create an AI that can accurately predict mobs in the player's field of view from gameplay screenshots. Using this information, create an AI that finds and labels mobs in a superflat world.
+
+## Tasks:
+1. Analyze image and draw a box around all mobs
+2. Classify each mob from these boxes
+3. Map this box center in the 2D image to a mob in the superflat world
+4. Label the mob in the superflat world with its predicted label
+
 ## Attempting to Solve Task 1
 - Analyze image and draw a box around all mobs
 
