@@ -83,8 +83,10 @@ class BaseAgent(object):
         '''Setup mission recordings'''
         recording = self.config['recording']
         if recording:
-            self.mission_record = MalmoPython.MissionRecordSpec(recording['path'])
-            self.mission_record.recordMP4(recording['fps'], recording['bit_rate'])
+            # self.mission_record = MalmoPython.MissionRecordSpec(recording['path'])
+            # self.mission_record.recordMP4(recording['fps'], recording['bit_rate'])
+            self.mission_record = MalmoPython.MissionRecordSpec('data2.tgz')
+            self.mission_record.recordMP4(1,200000)
         else:
             self.mission_record = MalmoPython.MissionRecordSpec()
 

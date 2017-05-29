@@ -9,32 +9,28 @@ from BaseAgent import BaseAgent
 
 class RecorderAgent(BaseAgent):
     imgCounter = 1
-    imgDir = 'imgs'
+    imgDir = 'imgs/tmp'
     def __init__(self, config):
         BaseAgent.__init__(self, config)
+        if not os.path.exists(self.imgDir):
+            os.makedirs(self.imgDir)
+        assert os.path.isdir(self.imgDir)
 
     def setupAgentHost(self):
         self.agent_host = MalmoPython.AgentHost()
-        # self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.KEEP_ALL_OBSERVATIONS)
-        # self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.KEEP_ALL_FRAMES)
-        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
-        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
-
-
-    # def setupMission(self):
-    #     self.mission = MalmoPython.MissionSpec(self.mission_xml, True)
+        self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.KEEP_ALL_FRAMES)
+        self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.KEEP_ALL_OBSERVATIONS)
 
     def agentAction(self):
         while self.world_state.number_of_video_frames_since_last_state < 1 and self.world_state.is_mission_running:
-            self.logger.info("Waiting for frames...")
+            self.logger.info('Waiting for frames...')
             time.sleep(0.05)
             self.world_state = self.agent_host.getWorldState()
 
-        self.logger.info("Got frame!")
+        self.logger.info('Got frame!')
 
         if self.world_state.is_mission_running:
             self.processFrame(self.world_state.video_frames[0].pixels)
-            #self.agent_host.sendCommand("turn " + str(current_yaw_delta_from_depth))
 
     def processFrame(self, pixels):
         frame = np.asarray(pixels).reshape(480,640,3)
@@ -42,12 +38,14 @@ class RecorderAgent(BaseAgent):
         imgPath = os.path.join(self.imgDir, '{0}.jpg'.format(self.imgCounter))
         cv2.imwrite(imgPath, frame_rgb)
         self.imgCounter += 1
-    # def endMission(self):
-    #     pass
 
-#if __name__ == '__main__':
 config = {
-    'mission_file': r'C:\Users\armentrout\Documents\PyCharm\MinecraftObjectRecognition\missions\barn_yard.xml',
+    'mission_file': r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\missions\flat_world.xml',
+    'recording': {
+                'path': 'data.tgz',
+                'fps': 1,
+                'bit_rate': 400000
+    },
 }
 ra = RecorderAgent(config)
 ra.startMission()

@@ -26,8 +26,8 @@
 
             <!-- place mobs -->
             <DrawEntity x="-10"  y="227" z="-2" type="Pig" />
-            <DrawEntity x="-8"  y="227" z="-2" type="Cow" />
-            <DrawEntity x="-6"  y="227" z="-2" type="Chicken" />
+            <!--<DrawEntity x="-8"  y="227" z="-2" type="Cow" />-->
+            <!--<DrawEntity x="-6"  y="227" z="-2" type="Chicken" />-->
         </DrawingDecorator>
       <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
@@ -50,15 +50,6 @@
       </VideoProducer>
       <ContinuousMovementCommands turnSpeedDegs="360"/>
       <AbsoluteMovementCommands/>
-      <!--<DiscreteMovementCommands>-->
-          <!--<ModifierList type="deny-list">-->
-            <!--<command>attack</command>-->
-          <!--</ModifierList>-->
-      <!--</DiscreteMovementCommands>-->
-      <!--<RewardForCollectingItemType>-->
-        <!--<Item type="porkchop" reward="100.0"/>-->
-      <!--</RewardForCollectingItemType>-->
-      <!--<RewardForSendingCommand reward="-1"/>-->
     </AgentHandlers>
   </AgentSection>
 
