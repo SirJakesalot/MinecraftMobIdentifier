@@ -149,7 +149,7 @@ Once a specific mob has been identified as viewable on the screen, the following
 ## Video of our Project in Malmo
 Currently, we have not bridged the connection between the image classification and Malmo. For testing and in the video below, rather than taking the input of the X and Z values of a specific mob from the image, X and Z coordinates are being taken as input from the Malmo environment and our AI moves towards and classifies the closest mob.
 
-<video controls src="media/demo.mov"></video>
+<video controls src="media/demo.mov" width="800" height="600"></video>
 
 # Planned Additions
 * Counter for how many mobs have been classified
