@@ -3,7 +3,7 @@ layout: default
 title:  Status
 ---
 
-Please reference our <a href="index.md">home page</a> for more information.
+Please reference our <a href="index.html">home page</a> for more information.
 
 ## Goal
 

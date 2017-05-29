@@ -3,7 +3,7 @@ layout: default
 title:  Home
 ---
 
-Create a model that can accurately predict mobs in the player's field of view from gameplay screenshots. Using this information, create an AI that finds and labels mobs in a superflat world.
+Create an AI that can accurately predict mobs in the player's field of view from gameplay screenshots. Using this information, create an AI that finds and labels mobs in a superflat world.
 
 ## Tasks:
 1. Analyze image and draw a box around all mobs
