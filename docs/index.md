@@ -3,7 +3,6 @@ layout: default
 title:  Home
 ---
 
-# Minecraft Mob Recognition
 Create a model that can accurately predict mobs in the player's field of view from gameplay screenshots. Using this information, create an AI that finds and labels mobs in a superflat world.
 
 ## Tasks:
@@ -12,7 +11,7 @@ Create a model that can accurately predict mobs in the player's field of view fr
 3. Map this box center in the 2D image to a mob in the superflat world
 4. Label the mob in the superflat world with its predicted label
 
-# Technologies Used
+## Technologies Used
 1. OpenCV
   * image manipulation
   * haar cascades
@@ -24,7 +23,7 @@ Create a model that can accurately predict mobs in the player's field of view fr
 4. Project Malmo
   * API to interact with the Minecraft world
 
-# Malmo Environment
+## Malmo Environment
 * Superflat world
 * Available mobs [chicken, cow, pig, sheep, mushroom cow]
 * At most one of each mob spawned
@@ -37,7 +36,7 @@ Create a model that can accurately predict mobs in the player's field of view fr
   * Pig -> Pink
   * Sheep -> Blue
 
-# Auto-cropper Tool
+## Auto-cropper Tool
 
 Process to take images of single mobs and crop out just the mob
 1. Original Image
@@ -64,7 +63,7 @@ Process to take images of single mobs and crop out just the mob
   </li>
 </ul>
 
-# Dataset Creation
+## Dataset Creation
 
 Our process for obtaining an image dataset of 1000 images for each mob
 1. Spawn superflat world with a single mob
