@@ -70,7 +70,7 @@ class BaseAgent(object):
         '''Read mission xml'''
         mission_file = self.config['mission_file']
         with open(mission_file, 'r') as f:
-            print('Loading mission from', mission_file)
+            self.logger.info('Loading mission from', mission_file)
             self.mission_xml = f.read()
 
     def setupMission(self):
@@ -111,7 +111,7 @@ class BaseAgent(object):
             except RuntimeError as e:
                 time.sleep(2)
         if failed:
-            print('Error starting mission, exiting')
+            self.logger.error('Error starting mission, exiting')
             exit(1)
 
         print('Waiting for the mission to start')
@@ -121,22 +121,22 @@ class BaseAgent(object):
             time.sleep(0.1)
             self.world_state = self.agent_host.getWorldState()
             for error in self.world_state.errors:
-                print('Error:', error.text)
-        print('Mission running')
+                self.logger.error('Error:', error.text)
+        self.logger.info('Mission running')
         while self.world_state.is_mission_running:
-            sys.stdout.write(".")
+            self.logger.info(".")
             time.sleep(0.1)
             self.world_state = self.agent_host.getWorldState()
             for error in self.world_state.errors:
-                print('Error:', error.text)
+                self.logger.error('Error:', error.text)
             self.agentAction()
         self.endMission()
 
     def agentAction(self):
         '''A single action from the agent at a given world state'''
         # TODO: implement the agent's action
-        sys.stdout.write(".")
+        self.logger.info(".")
 
     def endMission(self):
         '''Anything to be done after mission'''
-        print('Mission ended')
+        self.logger.info('Mission ended')
