@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+import Queue
 
 backgroundMaskRanges = (50, 120), (29, 255), (60, 255)
 
@@ -89,3 +90,66 @@ def cropMob(img, show=False):
         cv2.destroyAllWindows()
     return crop
 
+def cropMobs(img, show=False):
+    '''Return parts of the image that are not the background'''
+    # remove grass and sky
+    noBackground = rmBackground(img)
+    # remove noise
+    noNoise = rmNoise(noBackground)
+    # edge detection
+    edges = getEdges(noNoise)
+    _, contours, _ = cv2.findContours(edges,
+                                      cv2.RETR_TREE,
+                                      cv2.CHAIN_APPROX_SIMPLE)
+
+    x, y, w, h = mergeContours(contours)
+    # allMobs = noBackground[y:y+h, x:x+w]
+    visited, croppings = set(), []
+
+    for i in range(len(noBackground)):
+        for j in range(len(noBackground[0])):
+            if any(noBackground[i][j]) and (i,j) not in visited:
+                # pixel value is not black and has not been visited yet
+                # perform BFS at this pixel
+                cropping = matrixBFS(noBackground, visited, (i,j))
+                if len(cropping) > 50:
+                    xs = [indx[0] for indx in cropping]
+                    ys = [indx[1] for indx in cropping]
+                    xs.sort()
+                    ys.sort()
+                    croppings.append((xs[0], ys[0], xs[-1] - xs[0], ys[-1] - ys[0]))
+    if show:
+        cv2.imshow('noBackground', noBackground)
+        cv2.imshow('noNoise', noNoise)
+        cv2.imshow('edges', edges)
+        for i, (x, y, w, h) in enumerate(croppings):
+            cv2.imshow(str(i), img[x:x+w, y:y+h])
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return croppings
+
+def matrixBFS(img, visited, start):
+    cropping = []
+    q = Queue.Queue()
+    q.put(start)
+
+    while q.qsize():
+        indx = q.get()
+        x, y = indx
+        if indx not in visited and any(img[x][y]):
+            visited.add(indx)
+            additions = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+            for x,y in additions:
+                if 0 <= x <= len(img) - 1 and 0 <= y <= len(img[0]) - 1:
+                    q.put((x,y))
+            cropping.append(indx)
+    return cropping
+
+if __name__ == '__main__':
+    img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\mobs\originals\90.jpg')
+    #img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\test.jpg')
+
+    import time
+    start = time.time()
+    cropMobs(img, show=True)
+    print(time.time() - start)
