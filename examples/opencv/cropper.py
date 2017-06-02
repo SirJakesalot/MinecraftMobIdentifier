@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+import time
 import Queue
 
 backgroundMaskRanges = (50, 120), (29, 255), (60, 255)
@@ -90,44 +91,6 @@ def cropMob(img, show=False):
         cv2.destroyAllWindows()
     return crop
 
-def cropMobs(img, show=False):
-    '''Return parts of the image that are not the background'''
-    # remove grass and sky
-    noBackground = rmBackground(img)
-    # remove noise
-    noNoise = rmNoise(noBackground)
-    # edge detection
-    edges = getEdges(noNoise)
-    _, contours, _ = cv2.findContours(edges,
-                                      cv2.RETR_TREE,
-                                      cv2.CHAIN_APPROX_SIMPLE)
-
-    x, y, w, h = mergeContours(contours)
-    # allMobs = noBackground[y:y+h, x:x+w]
-    visited, croppings = set(), []
-
-    for i in range(len(noBackground)):
-        for j in range(len(noBackground[0])):
-            if any(noBackground[i][j]) and (i,j) not in visited:
-                # pixel value is not black and has not been visited yet
-                # perform BFS at this pixel
-                cropping = matrixBFS(noBackground, visited, (i,j))
-                if len(cropping) > 50:
-                    xs = [indx[0] for indx in cropping]
-                    ys = [indx[1] for indx in cropping]
-                    xs.sort()
-                    ys.sort()
-                    croppings.append((xs[0], ys[0], xs[-1] - xs[0], ys[-1] - ys[0]))
-    if show:
-        cv2.imshow('noBackground', noBackground)
-        cv2.imshow('noNoise', noNoise)
-        cv2.imshow('edges', edges)
-        for i, (x, y, w, h) in enumerate(croppings):
-            cv2.imshow(str(i), img[x:x+w, y:y+h])
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    return croppings
-
 def matrixBFS(img, visited, start):
     cropping = []
     q = Queue.Queue()
@@ -145,11 +108,55 @@ def matrixBFS(img, visited, start):
             cropping.append(indx)
     return cropping
 
+def cropMobs(img, show=False):
+    '''Return parts of the image that are not the background'''
+    # remove grass and sky
+    noBackground = rmBackground(img)
+    # remove noise
+    noNoise = rmNoise(noBackground)
+    # edge detection
+    edges = getEdges(noNoise)
+    _, contours, _ = cv2.findContours(edges,
+                                      cv2.RETR_TREE,
+                                      cv2.CHAIN_APPROX_SIMPLE)
+    cx, cy, cw, ch = mergeContours(contours)
+    allMobs = noBackground[cy:cy+ch, cx:cx+cw]
+    start = time.time()
+    visited, croppings = set(), []
+    for i in range(len(allMobs)):
+        for j in range(len(allMobs[0])):
+            if any(allMobs[i][j]) and (i,j) not in visited:
+                # pixel value is not black and has not been visited yet
+                # perform BFS at this pixel
+                cropping = matrixBFS(allMobs, visited, (i,j))
+                minX, maxX, minY, maxY = float('inf'), -1, float('inf'), -1
+                if len(cropping) > 50:
+                    for y, x in cropping:
+                        if x < minX:
+                            minX = x
+                        if x > maxX:
+                            maxX = x
+                        if y < minY:
+                            minY = y
+                        if y > maxY:
+                            maxY = y
+                    croppings.append((cy + minY, cx + minX, maxY - minY , maxX - minX))
+    print(time.time() - start)
+    if show:
+        cv2.imshow('noBackground', noBackground)
+        cv2.imshow('noNoise', noNoise)
+        cv2.imshow('edges', edges)
+        cv2.imshow('allMobs', allMobs)
+        for i, (x, y, w, h) in enumerate(croppings):
+            cv2.imshow(str(i), img[x:x+w, y:y+h])
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return croppings
+
 if __name__ == '__main__':
     img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\mobs\originals\90.jpg')
     #img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\test.jpg')
 
-    import time
     start = time.time()
-    cropMobs(img, show=True)
+    cropMobs(img, show=False)
     print(time.time() - start)
