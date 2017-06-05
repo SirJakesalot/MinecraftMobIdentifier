@@ -17,7 +17,7 @@ img_paths = [r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\a
              r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\mobs\70.jpg',
              r'C:\Users\armentrout\Downloads\superflat_90x120\flat_4.jpg']
 
-img = cv2.imread(img_paths[0])
+img = cv2.imread(img_paths[1])
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 cv2.namedWindow('Colorbars', flags=cv2.WINDOW_NORMAL)
 

@@ -1,3 +1,6 @@
+# Useful Links
+# http://www.pyimagesearch.com/2014/01/22/clever-girl-a-guide-to-utilizing-color-histograms-for-computer-vision-and-image-search-engines/
+
 import cv2
 import os
 import numpy as np
@@ -9,11 +12,26 @@ backgroundMaskRanges = (50, 120), (29, 255), (60, 255)
 def readImg(path):
     return cv2.imread(path)
 
+def convertGray(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
 def writeImg(path, img, overwrite=False):
     if not os.path.exists(path) or overwrite:
         cv2.imwrite(path, img)
     else:
         print('[INFO] path already exists', path)
+
+def getImgHist(img, gray=False):
+    if gray:
+        hist = cv2.calcHist([img], [0], None, [256], [0,256])
+    else:
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        hist = cv2.calcHist([hsv],
+                            [0,1,2],
+                            None,
+                            (8,8,8),
+                            [0,180,0,256,0,256])
+    return cv2.normalize(hist, hist).flatten()
 
 def mask(img, rng1, rng2, rng3):
     '''Apply a mask to image'''
@@ -121,7 +139,6 @@ def cropMobs(img, show=False):
                                       cv2.CHAIN_APPROX_SIMPLE)
     cx, cy, cw, ch = mergeContours(contours)
     allMobs = noBackground[cy:cy+ch, cx:cx+cw]
-    start = time.time()
     visited, croppings = set(), []
     for i in range(len(allMobs)):
         for j in range(len(allMobs[0])):
@@ -140,23 +157,47 @@ def cropMobs(img, show=False):
                             minY = y
                         if y > maxY:
                             maxY = y
-                    croppings.append((cy + minY, cx + minX, maxY - minY , maxX - minX))
-    print(time.time() - start)
+                    y, x, h, w = cy + minY, cx + minX, maxY - minY, maxX - minX
+                    croppings.append(img[y:y+h, x:x+w])
     if show:
         cv2.imshow('noBackground', noBackground)
         cv2.imshow('noNoise', noNoise)
         cv2.imshow('edges', edges)
         cv2.imshow('allMobs', allMobs)
-        for i, (x, y, w, h) in enumerate(croppings):
-            cv2.imshow(str(i), img[x:x+w, y:y+h])
+        for i, crop in enumerate(croppings):
+            cv2.imshow(str(i), crop)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     return croppings
 
+def segmentCrop(img):
+    h, w = img.shape[0], img.shape[1]
+    boxW, boxH = int(w/3), int(h/3)
+    segments = []
+    segments.append(img[:boxH, :boxW])
+    segments.append(img[:boxH, boxW:2*boxW])
+    segments.append(img[:boxH, 2*boxW:])
+
+    segments.append(img[boxH:2*boxH, :boxW])
+    segments.append(img[boxH:2*boxH, boxW:2*boxW])
+    segments.append(img[boxH:2*boxH, 2*boxW:])
+
+    segments.append(img[2*boxH:, :boxW])
+    segments.append(img[2*boxH:, boxW:2*boxW])
+    segments.append(img[2*boxH:, 2*boxW:])
+    return segments
+
 if __name__ == '__main__':
-    img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\mobs\originals\90.jpg')
+    img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\100.jpg')
     #img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\test.jpg')
 
     start = time.time()
-    cropMobs(img, show=False)
+    croppings = cropMobs(img, show=False)
+    for crop in croppings:
+        cv2.imshow('cropping', crop)
+        for i, segment in enumerate(segmentCrop(crop)):
+            cv2.imshow('c' + str(i), segment)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
     print(time.time() - start)
