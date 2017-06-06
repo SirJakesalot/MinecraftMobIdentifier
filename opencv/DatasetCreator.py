@@ -9,7 +9,7 @@ class DatasetCreator:
     # all values that are None have to be specified by the user
     DEFAULT_CONFIG = {
         'img_dir': None,
-        'dims': [24],
+        'dims': [-1, 24],
         'overwrite': False,
         'debug': True,
     }
@@ -22,6 +22,7 @@ class DatasetCreator:
 
         self.mobPaths = self.getSubdirs(self.config['img_dir'])
         self.mobs = [os.path.basename(mobDir) for mobDir in self.mobPaths]
+        self.mobInfo = zip(self.mobs, self.mobPaths, range(len(self.mobPaths)))
 
         originals = [os.path.join(mob, 'originals') for mob in self.mobPaths]
         assert all(os.path.isdir(original) for original in originals)
@@ -46,18 +47,15 @@ class DatasetCreator:
             self.aspectNoBackgroundPath,
         ]
 
-    def createCustomizations(self):
-        '''Run through and save image customizations'''
-        dims = self.config['dims']
-        for mob in self.mobPaths:
-            for customization in self.customizationPaths:
-                for dim in dims:
-                    p = os.path.join(mob, customization, str(dim))
-                    if not os.path.exists(p):
-                        self.logger.info('making directory: ' + p)
-                        os.makedirs(p)
-            for name in os.listdir(os.path.join(mob, 'originals')):
-                self.saveCustomizations(mob, name)
+    def setupLogging(self):
+        '''Setup log reporting'''
+        self.logger = logging.getLogger(__name__)
+        if self.config['debug']:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+        self.logger.handlers = []
+        self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def reconfigure(self, config):
         '''Update configuration settings'''
@@ -74,60 +72,70 @@ class DatasetCreator:
         self.config = new_config
         self.setupLogging()
 
-    def setupLogging(self):
-        '''Setup log reporting'''
-        self.logger = logging.getLogger(__name__)
-        if self.config['debug']:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
-        self.logger.handlers = []
-        self.logger.addHandler(logging.StreamHandler(sys.stdout))
-
     def getSubdirs(self, path):
-        '''Ignore subdirs starting with a period'''
+        '''Get directory subdirs but ignore the ones starting with a period'''
         f = lambda x: os.path.isdir(x) and not os.path.basename(x).startswith('-')
         return filter(f, [os.path.join(path, d) for d in os.listdir(path)])
 
-    def saveCustomizations(self, mob, name):
-        dims = self.config['dims']
+    def createCustomizations(self):
+        '''Run through and save image customizations'''
+        for mobPath in self.mobPaths:
+            for customization in self.customizationPaths:
+                for dim in self.config['dims']:
+                    p = os.path.join(mobPath, customization, str(dim))
+                    if not os.path.exists(p):
+                        self.logger.info('making directory: ' + p)
+                        os.makedirs(p)
+            for imgName in os.listdir(os.path.join(mobPath, 'originals')):
+                img = readImg(os.path.join(mobPath, 'originals', imgName))
+                cropping = cropMob(img, show=False)
+                self.saveCustomizations(mobPath, cropping, imgName)
+
+    def saveCustomizations(self, mobPath, cropping, imgName):
+        '''Generate and save each customizations'''
         overwrite = self.config['overwrite']
-        img = readImg(os.path.join(mob, 'originals', name))
-        crop = cropMob(img, show=False)
 
-        for dim in dims:
-            boxPlainPath = os.path.join(mob, 'cropped', 'box', 'plain', str(dim), name)
-            boxGrayPath = os.path.join(mob, 'cropped', 'box', 'gray', str(dim), name)
-            boxEdgePath = os.path.join(mob, 'cropped', 'box', 'edge', str(dim), name)
-            boxNoBackgroundPath = os.path.join(mob, 'cropped', 'box', 'no_background', str(dim), name)
-            aspectPlainPath = os.path.join(mob, 'cropped', 'aspect', 'plain', str(dim), name)
-            aspectGrayPath = os.path.join(mob, 'cropped', 'aspect', 'gray', str(dim), name)
-            aspectEdgePath = os.path.join(mob, 'cropped', 'aspect', 'edge', str(dim), name)
-            aspectNoBackgroundPath = os.path.join(mob, 'cropped', 'aspect', 'no_background', str(dim), name)
+        for dim in self.config['dims']:
+            boxPlainFullPath = os.path.join(mobPath, self.boxPlainPath, str(dim), imgName)
+            boxGrayFullPath = os.path.join(mobPath, self.boxGrayPath, str(dim), imgName)
+            boxEdgeFullPath = os.path.join(mobPath, self.boxEdgePath, str(dim), imgName)
+            boxNoBackgroundFullPath = os.path.join(mobPath, self.boxNoBackgroundPath, str(dim), imgName)
+            aspectPlainFullPath = os.path.join(mobPath, self.aspectPlainPath, str(dim), imgName)
+            aspectGrayFullPath = os.path.join(mobPath, self.aspectGrayPath, str(dim), imgName)
+            aspectEdgeFullPath = os.path.join(mobPath, self.aspectEdgePath, str(dim), imgName)
+            aspectNoBackgroundFullPath = os.path.join(mobPath, self.aspectNoBackgroundPath, str(dim), imgName)
 
-            boxPlain = resize(crop, dim, aspect=False)
+            # perform box customizations
+            if dim == -1:
+                boxPlain = resize(cropping, max(cropping.shape[:2]), aspect=False)
+            else:
+                boxPlain = resize(cropping, dim, aspect=False)
             boxGray = convertGray(boxPlain)
             boxNoBackground = rmBackground(boxPlain)
             boxEdges = getEdges(boxNoBackground)
 
-            writeImg(boxPlainPath, boxPlain, overwrite=overwrite)
-            writeImg(boxGrayPath, boxGray, overwrite=overwrite)
-            writeImg(boxEdgePath, boxNoBackground, overwrite=overwrite)
-            writeImg(boxNoBackgroundPath, boxEdges, overwrite=overwrite)
+            # save box customizations
+            writeImg(boxPlainFullPath, boxPlain, overwrite=overwrite)
+            writeImg(boxGrayFullPath, boxGray, overwrite=overwrite)
+            writeImg(boxNoBackgroundFullPath, boxNoBackground, overwrite=overwrite)
+            writeImg(boxEdgeFullPath, boxEdges, overwrite=overwrite)
 
-            aspectPlain = resize(crop, dim, aspect=True)
+            # perform aspect customizations
+            aspectPlain = resize(cropping, dim, aspect=True) if dim != -1 else cropping
             aspectGray = convertGray(aspectPlain)
             aspectNoBackground = rmBackground(aspectPlain)
             aspectEdges = getEdges(aspectNoBackground)
 
-            writeImg(aspectPlainPath, aspectPlain, overwrite=overwrite)
-            writeImg(aspectGrayPath, aspectGray, overwrite=overwrite)
-            writeImg(aspectNoBackgroundPath, aspectNoBackground, overwrite=overwrite)
-            writeImg(aspectEdgePath, aspectEdges, overwrite=overwrite)
+            # save aspect customizations
+            writeImg(aspectPlainFullPath, aspectPlain, overwrite=overwrite)
+            writeImg(aspectGrayFullPath, aspectGray, overwrite=overwrite)
+            writeImg(aspectNoBackgroundFullPath, aspectNoBackground, overwrite=overwrite)
+            writeImg(aspectEdgeFullPath, aspectEdges, overwrite=overwrite)
 
 if __name__ == '__main__':
     config = {
-        'img_dir': 'C:\\Users\\armentrout\\Documents\\GitHub\\MinecraftObjectRecognition\\agents\\imgs'
+        'img_dir': 'C:\\Users\\armentrout\\Documents\\GitHub\\MinecraftObjectRecognition\\agents\\imgs',
+        # 'overwrite': True,
     }
     dc = DatasetCreator(config)
     dc.createCustomizations()

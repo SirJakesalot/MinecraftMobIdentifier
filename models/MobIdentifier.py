@@ -1,9 +1,6 @@
-from collections import Counter
 import os
 import time
 
-import cv2
-import numpy as np
 from sklearn import model_selection
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -13,42 +10,101 @@ from opencv.cropper import *
 
 
 class MobIdentifier(DatasetCreator):
+    '''Handle reading and predicting mobs on image dataset.
+    
+    There are several datasets to pull from:
+    1) box plain - simple cropping of mob
+    2) box gray - same as above but grayscale
+    3) box no background - same as plain but with no background (black pixels)
+    4) box edges - edge detection on the plain image
+    5) aspect plain, gray, no background, edges - same as above but with aspect ratio resizing
+    
+    There are two types of image values to train on:
+    1) raw pixel values
+    2) histogram of pixel values
+    '''
 
     def __init__(self, config):
+        # read dataset values
         DatasetCreator.__init__(self, config)
+        # flattened image pixel values (color or gray)
         self.pixelVals = []
+        # pixel value labels
+        self.pixelValLabels = []
+        # flattened image color histogram of pixel values (color or gray)
         self.histVals = []
-        self.mobLabels = {key: val for key, val in enumerate(self.mobs)}
-        self.labels = []
+        # histogram value labels
+        self.histValLabels = []
+        # mapping of mob ids to mob names
+        self.mobId2Label = {key: val for val, _, key in self.mobInfo}
 
+    def loadDataset(self, customization_path, dim, use_pixels=False,
+                                                   use_histogram=False,
+                                                   use_whole_crop=False,
+                                                   use_segments=False,
+                                                   segment_dim=24):
+        '''Load the specified dataset for the dimension
+        customization_path: DatasetCreator customization
+        dim: DatasetCreator dimension to load
+        use_pixels: train dataset on pixel values
+        use_hist: train dataset on histogram values
+        use_whole_crop: train dataset with whole croppings
+        use_segments: train dataset with segments of croppings
+        segment_dim: dimensions of each segment
+        '''
+        # proper config checks
+        assert use_pixels or use_histogram
+        assert use_whole_crop or use_segments
 
-    def loadDataset(self, customizationPath, dim, gray=False, original=False):
-        for i, mobPath in enumerate(self.mobPaths):
-            if original:
-                imgDir = os.path.join(mobPath, 'originals')
-            else:
-                imgDir = os.path.join(mobPath, customizationPath, str(dim))
+        # reset data
+        self.pixelVals = []
+        self.pixelValLabels = []
+        self.histVals = []
+        self.histValLabels = []
+
+        # Grab information from each image
+        for mobName, mobPath, mobId in self.mobInfo:
+            imgDir = os.path.join(mobPath, customization_path, str(dim))
             for imgName in os.listdir(imgDir):
                 img = readImg(os.path.join(imgDir, imgName))
-                if gray:
-                    img = convertGray(img)
-                for segment in segmentCrop(img):
-                    resized = resize(segment, 24)
-                    self.pixelVals.append(resized.flatten())
-                    self.histVals.append(getImgHist(resized, gray=gray))
-                    self.labels.append(i)
-                # self.pixelVals.append(img.flatten())
-                # self.histVals.append(getImgHist(img, gray=gray))
-                # self.labels.append(i)
-        self.pixelVals = np.array(self.pixelVals)
-        self.histVals = np.array(self.histVals)
-        self.labels = np.array(self.labels)
+                if use_whole_crop:
+                    if use_pixels:
+                        self.pixelVals.append(img.flatten())
+                        self.pixelValLabels.append(mobId)
+                    if use_histogram:
+                        self.histVals.append(getImgHist(img).flatten())
+                        self.histValLabels.append(mobId)
+                if use_segments:
+                    for segment in segmentCrop(img):
+                        resized = resize(segment, segment_dim)
+                        if use_pixels:
+                            self.pixelVals.append(resized.flatten())
+                            self.pixelValLabels.append(mobId)
+                        if use_histogram:
+                            self.histVals.append(getImgHist(resized).flatten())
+                            self.histValLabels.append(mobId)
+        # cast data as np arrays
+        if use_pixels:
+            self.pixelVals = np.array(self.pixelVals)
+            self.pixelValLabels = np.array(self.pixelValLabels)
+        if use_histogram:
+            self.histVals = np.array(self.histVals)
+            self.histValLabels = np.array(self.histValLabels)
 
-    def splitDataset(self, features, labels, test_size=0.25):
-        self.Xtr, self.Xte, self.Ytr, self.Yte = model_selection.train_test_split(features,
-                                                                                  labels,
-                                                                                  test_size=test_size,
-                                                                                  random_state=42)
+    def splitDataset(self, feature_set, test_size=0.25):
+        if feature_set == 'pixels':
+            self.Xtr, self.Xte, self.Ytr, self.Yte = model_selection.train_test_split(self.pixelVals,
+                                                                                      self.pixelValLabels,
+                                                                                      test_size=test_size,
+                                                                                      random_state=42)
+        elif feature_set == 'histograms':
+            self.Xtr, self.Xte, self.Ytr, self.Yte = model_selection.train_test_split(self.histVals,
+                                                                                      self.histValLabels,
+                                                                                      test_size=test_size,
+                                                                                      random_state=42)
+        else:
+            raise Exception('Unknown feature set')
+
     def createKNN(self, k=5):
         self.knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1)
         self.logger.info('Fitting KNN...')
@@ -83,43 +139,41 @@ if __name__ == '__main__':
     }
 
     mi = MobIdentifier(config)
-    mi.loadDataset(mi.boxPlainPath, 24, gray=False)
-    #mi.splitDataset(mi.pixelVals, mi.labels)
-    mi.splitDataset(mi.histVals, mi.labels)
-    # mi.createKNN()
-    # mi.saveModel('knn', 'knn_model.sav')
-    mi.createRandomForest()
+    segment_dim = 24
+    # number of non-black pixels has to be greater than this in the segment
+    segment_nonzero_thresh = int((segment_dim**2) * 0.5) * 3
+
+    # How to save a new model
+    # mi.loadDataset(mi.boxNoBackgroundPath, -1, use_pixels=True, use_segments=True, segment_dim=segment_dim)
+    # mi.splitDataset('pixels')
+    # mi.createRandomForest()
     # mi.saveModel('rfc', 'rfc_model.sav')
+
+    # How to load a saved model
     # mi.loadModel('knn', 'knn_model.sav')
-    # mi.loadModel('rfc', 'rfc_model.sav')
+    mi.loadModel('rfc', 'rfc_model.sav')
 
     #test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-pigs-and-sheep\cropped\box\plain\24\29.jpg')
-    test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\100.jpg')
-
+    test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\136.jpg')
+    print('Label ordering: {0}'.format(mi.mobs))
     for crop in cropMobs(test):
         print('')
-        # knnPixelPreds = [mi.mobLabels[mi.knn.predict(resize(crop, 24).flatten().reshape(1, -1))[0]]]
-        # rfcPixelPreds = [mi.mobLabels[mi.rfc.predict(resize(crop, 24).flatten().reshape(1, -1))[0]]]
-        # knnHistPreds = [mi.mobLabels[mi.knn.predict(getImgHist(resize(crop, 24)).reshape(1, -1))[0]]]
-        rfcHistPreds = [mi.mobLabels[mi.rfc.predict(getImgHist(resize(crop, 24)).reshape(1,-1))[0]]]
 
         start = time.time()
         for i, segment in enumerate(segmentCrop(crop)):
-            #resized = resize(segment, 24).flatten().reshape(1,-1)
-            hist = getImgHist(resize(segment, 24)).reshape(1,-1)
-            #knnPreds.append(mi.mobLabels[mi.knn.predict(resized)[0]])
-            rfcHistPreds.append(mi.mobLabels[mi.rfc.predict(hist)[0]])
-        #     cv2.imshow(str(i), resize(segment, 100))
+            noBackground = rmBackground(segment)
+            if np.count_nonzero(noBackground) > segment_nonzero_thresh:
+                # convert segment to feature vector
+                resized = resize(noBackground, segment_dim)
+                features = resized.flatten().reshape(1,-1)
+                rfcPreds = mi.rfc.predict_proba(features)[0]
+                #knnPreds = mi.knn.predict_proba(features)[0]
+                print('Segment {0}: {1}'.format(i, rfcPreds))
+            else:
+                print('Segment {0}: Mostly background'.format(i))
+
+            cv2.imshow('Segment ' + str(i), resize(noBackground, 100))
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         print('time to predict {0}'.format(time.time() - start))
-
-        # print('knn predictions')
-        # for mob, count in Counter(knnPreds).most_common(3):
-        #     print('{0}: {1}0%'.format(mob, count))
-
-        print('rfc predictions')
-        for mob, count in Counter(rfcHistPreds).most_common(3):
-            print('{0}: {1}0%'.format(mob, count))
-
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()

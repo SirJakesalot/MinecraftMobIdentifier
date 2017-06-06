@@ -10,19 +10,27 @@ import Queue
 backgroundMaskRanges = (50, 120), (29, 255), (60, 255)
 
 def readImg(path):
+    '''Read image from disk'''
     return cv2.imread(path)
 
 def convertGray(img):
+    '''Convert image to grayscale'''
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+def isGrayScale(img):
+    '''Simple check to see if image is grayscale'''
+    return type(img[0][0]) == np.uint8
+
 def writeImg(path, img, overwrite=False):
+    '''Write image to disk'''
     if not os.path.exists(path) or overwrite:
         cv2.imwrite(path, img)
     else:
-        print('[INFO] path already exists', path)
+        print('[CROPPER INFO] path already exists', path)
 
-def getImgHist(img, gray=False):
-    if gray:
+def getImgHist(img):
+    '''Calculate the histogram of values of the image'''
+    if isGrayScale(img):
         hist = cv2.calcHist([img], [0], None, [256], [0,256])
     else:
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -31,7 +39,7 @@ def getImgHist(img, gray=False):
                             None,
                             (8,8,8),
                             [0,180,0,256,0,256])
-    return cv2.normalize(hist, hist).flatten()
+    return cv2.normalize(hist, hist)
 
 def mask(img, rng1, rng2, rng3):
     '''Apply a mask to image'''
@@ -87,7 +95,7 @@ def mergeContours(contours):
     return xs[0], ys[0], xs[-1] - xs[0], ys[-1] - ys[0]
 
 def cropMob(img, show=False):
-    '''Return parts of the image that are not the background'''
+    '''Crop a single bounding box from the image'''
     # remove grass and sky
     noBackground = rmBackground(img)
     # remove noise
@@ -127,7 +135,7 @@ def matrixBFS(img, visited, start):
     return cropping
 
 def cropMobs(img, show=False):
-    '''Return parts of the image that are not the background'''
+    '''Crop multiple bounding boxes from and image'''
     # remove grass and sky
     noBackground = rmBackground(img)
     # remove noise
