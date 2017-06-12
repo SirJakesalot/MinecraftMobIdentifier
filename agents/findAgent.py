@@ -105,6 +105,8 @@ class FindAgent(BaseAgent):
  #       self.logger.info("Got observations!")
 
         if self.world_state.is_mission_running:
+            self.mission.allowAllChatCommands()
+            self.agent_host.sendCommand('chat /kill @e[type=!Player]')
             msg = self.world_state.observations[-1].text
             ob = json.loads(msg)
             if "entities" in ob:
@@ -127,12 +129,15 @@ class FindAgent(BaseAgent):
                 closest = self.closestMob(entities,my_x,my_z)
                 #print 'Closest = ' + str(closest.name)
                 if closest != EntityInfo():
-                    self.move(my_x,my_z,my_yaw,closest.x,closest.z)
+                    #self.move(my_x,my_z,my_yaw,closest.x,closest.z)
                     self.checkMob(my_x,my_z,closest.x,closest.z,entities)
                 else:
                     #print 'Found all mobs'
                     self.agent_host.sendCommand("move 0.0")
                     self.agent_host.sendCommand("turn 0.0")
+ #           if 'LineOfSight' in ob:
+#                los = ob['LineOfSight']
+#                print los
 
     def move(self,my_x,my_z,my_yaw,x,z):
         angle = math.fabs(math.degrees(math.atan2(x-my_x,z-my_z)))
@@ -206,7 +211,21 @@ class FindAgent(BaseAgent):
         self.root.wm_title("Mobs")
 
         self.canvas = tk.Canvas(self.root, width=self.canvas_width, height=self.canvas_height, borderwidth=0, highlightthickness=0, bg="black")
+        self.legend = tk.Canvas(self.root,width=self.canvas_width,height=100, borderwidth=0, highlightthickness=0, bg='#9f9f9f')
+
+        x = 10
+        y = 10
+
+        self.total_id = self.legend.create_text(x,y+50,anchor=tk.NW,text='Total Mobs Classified: ' + str(len(self.known_mobs)))
+        self.accuracy_id = self.legend.create_text(x,y+70,anchor=tk.NW,text='Accuracy: 0%')
+        
+        for mob,color in self.mobs.items():
+            self.legend.create_rectangle(x,y,x+20,y+20,fill=color)
+            self.legend.create_text(x+25,y,anchor=tk.NW,text=mob)
+            x = x + 100
+
         self.canvas.pack()
+        self.legend.pack()
         self.root.update()
 
     def canvasX(self,x):
@@ -227,6 +246,9 @@ class FindAgent(BaseAgent):
                     self.canvas.create_oval(self.canvasX(entities[ent].x)-3, self.canvasY(entities[ent].z)-3, self.canvasX(entities[ent].x)+3, self.canvasY(entities[ent].z)+3, fill="#000000")
             
         self.canvas.create_oval(self.canvasX(user.x)-4, self.canvasY(user.z)-4, self.canvasX(user.x)+4, self.canvasY(user.z)+4, fill="#22ff44")
+
+        self.legend.itemconfigure(self.total_id,text='Total Mobs Classified: ' + str(len(self.known_mobs)))
+        self.legend.itemconfigure(self.accuracy_id,text='Accuracy: '+str((float(len(self.known_mobs))/float(len(entities)))*100)+'%')#FIX
 
         self.root.update()
 
