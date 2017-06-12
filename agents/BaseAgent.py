@@ -27,6 +27,8 @@ class BaseAgent(object):
         'debug': True,
     }
 
+    action_count = 0
+
     def __init__(self, config):
         # configuration management
         self.config = self.DEFAULT_CONFIG
@@ -70,7 +72,7 @@ class BaseAgent(object):
         '''Read mission xml'''
         mission_file = self.config['mission_file']
         with open(mission_file, 'r') as f:
-            self.logger.info('Loading mission from', mission_file)
+            self.logger.info('Loading mission from ' + mission_file)
             self.mission_xml = f.read()
 
     def setupMission(self):
@@ -121,15 +123,16 @@ class BaseAgent(object):
             time.sleep(0.1)
             self.world_state = self.agent_host.getWorldState()
             for error in self.world_state.errors:
-                self.logger.error('Error:', error.text)
+                self.logger.error('Error:' + error.text)
         self.logger.info('Mission running')
         while self.world_state.is_mission_running:
             self.logger.info(".")
             time.sleep(0.1)
             self.world_state = self.agent_host.getWorldState()
             for error in self.world_state.errors:
-                self.logger.error('Error:', error.text)
+                self.logger.error('Error: ' +  error.text)
             self.agentAction()
+            self.action_count += 1
         self.endMission()
 
     def agentAction(self):

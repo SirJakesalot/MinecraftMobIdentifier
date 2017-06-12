@@ -1,5 +1,6 @@
 import time
 import os
+import json
 import random
 # vendors
 import MalmoPython
@@ -34,7 +35,8 @@ class Dataset:
                           use_histogram=False,
                           use_whole_crop=False,
                           use_segments=False,
-                          segment_dim=24):
+                          segment_dim=24,
+                          grayscale=False):
         '''Load the specified dataset for the dimension
                 customization_path: DatasetCreator customization
                 dim: DatasetCreator dimension to load
@@ -59,6 +61,8 @@ class Dataset:
             imgDir = os.path.join(self.path, mob)
             for imgName in os.listdir(imgDir):
                 img = readImg(os.path.join(imgDir, imgName))
+                if grayscale:
+                    img = convertGray(img)
                 if use_whole_crop:
                     if use_pixels:
                         pixelVals.append(img.flatten())
@@ -83,13 +87,19 @@ class Dataset:
 
 
 class MobIdentifierAgent(BaseAgent):
+    mobs = ['Chicken', 'Pig', 'Cow', 'MushroomCow', 'Sheep']
+    min_dist = 3
+    max_dist = 15
+
     imgDir = 'imgs/-tmp'
+
     totals = [0, 0]
     correct = [0, 0]
     datasets = [Dataset(os.path.join(imgDir, 'color')),
                 Dataset(os.path.join(imgDir, 'gray'))]
     models = [None, None]
     accs = [[],[]]
+    spawnedMobs = []
 
     def __init__(self, config):
         BaseAgent.__init__(self, config)
@@ -108,16 +118,46 @@ class MobIdentifierAgent(BaseAgent):
         self.agent_host.setVideoPolicy(MalmoPython.VideoPolicy.LATEST_FRAME_ONLY)
         self.agent_host.setObservationsPolicy(MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY)
 
-    def agentAction(self):
-        time.sleep(3)
-        while self.world_state.number_of_video_frames_since_last_state < 1 and self.world_state.is_mission_running:
-            self.logger.info('Waiting for frames...')
-            time.sleep(0.05)
-            self.world_state = self.agent_host.getWorldState()
-        self.logger.info('Got frame!')
+    def setupMission(self):
+        BaseAgent.setupMission(self)
+        self.mission.allowAllChatCommands()
 
-        if self.world_state.is_mission_running:
-            self.processFrame(self.world_state.video_frames[-1].pixels, random.choice(['Cow', 'Pig', 'Sheep']))
+    def agentAction(self):
+        if self.action_count == 0:
+            self.agent_host.sendCommand('chat /gamerule sendCommandFeedback false')
+            self.agent_host.sendCommand('chat /gamerule mobGriefing false')
+            self.agent_host.sendCommand('chat /gamerule doMobLoot false')
+            self.spawnedMobs = self.spawnMobs()
+            time.sleep(2)
+        else:
+            while self.waitForStateChange():
+                self.logger.info('Waiting for state change...')
+                time.sleep(0.05)
+                self.world_state = self.agent_host.getWorldState()
+
+            self.logger.info('State Change!')
+
+            if self.world_state.is_mission_running:
+                time.sleep(1)
+                if not self.spawnedMobs:
+                    yaw = self.getYaw()
+                    if yaw != 0:
+                        self.agent_host.sendCommand('turn 0')
+                    else:
+                        self.agent_host.sendCommand('chat /kill @e[type=!Player]')
+                        time.sleep(2)
+                        self.spawnedMobs = self.spawnMobs()
+                        time.sleep(4)
+                        self.logger.info(str(self.spawnedMobs))
+                else:
+                    mob = self.spawnedMobs.pop()
+                    self.logger.info('SEEING ' + mob)
+                    self.processFrame(self.world_state.video_frames[-1].pixels, mob)
+                    time.sleep(4)
+                    yaw = self.getYaw() + 90
+                    self.agent_host.sendCommand('turn {0}'.format(yaw))
+                    time.sleep(1)
+
 
     def processFrame(self, pixels, actualLabel):
         self.ax1.clear()
@@ -129,51 +169,89 @@ class MobIdentifierAgent(BaseAgent):
         # crop mob out of frame
         mob = resize(cropMob(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)), 24)
         # apply different image manipulations
-        #imgs = [mob, convertGray(mob)]
-        imgs = [mob, mob]
+        imgs = [mob, convertGray(mob)]
+        #imgs = [mob, mob]
+
+        preds = []
+        colors = []
 
         # loop over different datasets, models, image manipulations
         for i in range(len(self.datasets)):
             # create model if not created yet and move on
-            if self.models[i] == None:
+            if self.models[i] == None or actualLabel not in self.datasets[i].labels:
                 self.logger.info('Dataset {0}: Creating new label {1}'.format(i, actualLabel))
                 self.datasets[i].addImg(actualLabel, imgs[i])
-                X, Y = self.datasets[i].loadDataset(use_pixels=True, use_whole_crop=True)
+                X, Y = self.datasets[i].loadDataset(use_pixels=True, use_whole_crop=True, grayscale=isGrayScale(imgs[i]))
                 self.models[i] = RandomForestClassifier(n_estimators=10, random_state=42, n_jobs=-1)
                 self.models[i].fit(X, Y)
             else:
                 pred = self.models[i].predict(imgs[i].flatten().reshape(1,-1))
                 pred = self.datasets[i].labels[pred[0].item()]
+                preds.append(pred)
                 if pred == actualLabel:
                     self.logger.info('Dataset {0}: Predicted correctly'.format(i))
                     self.correct[i] += 1
+                    colors.append('green')
                 else:
                     self.logger.info('Dataset {0}: Predicted wrongly. Actual {1} Pred {2}'.format(i, actualLabel, pred))
                     self.datasets[i].addImg(actualLabel, imgs[i])
-                    X, Y = self.datasets[i].loadDataset(use_pixels=True, use_whole_crop=True)
+                    X, Y = self.datasets[i].loadDataset(use_pixels=True, use_whole_crop=True, grayscale=isGrayScale(imgs[i]))
                     self.models[i] = RandomForestClassifier(n_estimators=10, random_state=42, n_jobs=-1)
                     self.models[i].fit(X, Y)
+                    colors.append('red')
                 self.totals[i] += 1
                 self.accs[i].append(float(self.correct[i])/float(self.totals[i]))
 
-
-        self.ax1.set_title('RGB Image')
-        self.ax1.imshow(imgs[0])
-        self.ax2.set_title('Gray Image')
-        self.ax2.imshow(convertGray(imgs[1]), cmap='gray')
-        self.ax3.set_title('acc 1')
+        ax1_title = 'RGB'
+        ax2_title = 'Gray'
+        ax3_title = 'Stats'
+        ax4_title = 'Stats'
+        if preds:
+            ax1_title += ' - {0}'.format(preds[0])
+            ax2_title += ' - {0}'.format(preds[1])
+            ax3_title += ' - {0}/{1} - {2} images'.format(self.correct[0], self.totals[0],
+                                                                          self.datasets[0].imgCount)
+            ax4_title += ' - {0} /{1} - {2} images'.format(self.correct[1], self.totals[1],
+                                                                          self.datasets[1].imgCount)
+        self.ax1.set_title(ax1_title, fontdict={'color': colors[0]})
+        self.ax1.imshow(cv2.COLOR_BGR2RGB(imgs[0]))
+        self.ax2.set_title(ax2_title, fontdict={'color': colors[1]})
+        self.ax2.imshow(imgs[1], cmap='gray')
+        self.ax3.set_title(ax3_title)
         self.ax3.plot(self.accs[0])
+        self.ax4.set_title(ax4_title)
         self.ax4.plot(self.accs[1])
-
         plt.tight_layout()
         plt.show()
         plt.pause(0.01)
 
     def pickMob(self):
         return random.choice(self.mobs)
+    def getDistance(self):
+        return random.randint(self.min_dist, self.max_dist)
 
     def predictModels(self, img):
         return [model.predict(img) for model in self.models]
+
+    def spawnMobs(self):
+        mobs = [self.pickMob() for _ in range(4)]
+        cmd = 'chat /summon {0} {1} 227.0 {2} {{Attributes:[{{Name:generic.movementSpeed,Base:0}}]}}'
+        self.agent_host.sendCommand(cmd.format(mobs[3], 0.5 + self.getDistance(), 0.5))
+        self.agent_host.sendCommand(cmd.format(mobs[0], 0.5, 0.5 + self.getDistance()))
+        self.agent_host.sendCommand(cmd.format(mobs[1], 0.5 - self.getDistance(), 0.5))
+        self.agent_host.sendCommand(cmd.format(mobs[2], 0.5, 0.5 - self.getDistance()))
+        return mobs[::-1]
+
+    def waitForStateChange(self):
+        return self.world_state.number_of_video_frames_since_last_state < 1 and \
+        self.world_state.number_of_observations_since_last_state < 1 and \
+        self.world_state.is_mission_running
+
+    def getYaw(self):
+        msg = self.world_state.observations[-1].text
+        ob = json.loads(msg)
+        entity = [ent for ent in ob['entities'] if ent[u'name'] == u'Agent'][0]
+        return entity[u'yaw']
 
 
 config = {
