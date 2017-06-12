@@ -195,17 +195,52 @@ def segmentCrop(img):
     segments.append(img[2*boxH:, 2*boxW:])
     return segments
 
+def findCentroids(labels, predictions, dim):
+    adjacent_segments = {'0': [(1, 'right'), (3, 'down'), (4, 'downright')],
+                              '1': [(0, 'left'), (2, 'right'), (3, 'downleft'), (4, 'down'), (5, 'downright')],
+                              '2': [(1, 'left'), (4, 'downleft'), (5, 'down')],
+                              '3': [(0, 'up'), (1, 'upright'), (4, 'right'), (6, 'down'), (7, 'downright')],
+                              '4': [(0, 'upleft'), (1, 'up'), (2, 'upright'), (3, 'left'), (5, 'right'),
+                                    (6, 'downleft'), (7, 'down'), (8, 'downright')],
+                              '5': [(1, 'upleft'), (2, 'up'), (4, 'left'), (7, 'downleft'), (8, 'down')],
+                              '6': [(3, 'up'), (4, 'upright'), (7, 'right')],
+                              '7': [(3, 'upleft'), (4, 'up'), (5, 'upright'), (6, 'left'), (8, 'right')],
+                              '8': [(4, 'upleft'), (5, 'up'), (7, 'left')]}
+    move_value = {'up': (0, 1),
+                       'down': (0, -1),
+                       'left': (-1, 0),
+                       'right': (1, 0),
+                       'upleft': (-1, 1),
+                       'upright': (1, 1),
+                       'downleft': (-1, -1),
+                       'downright': (1, -1)}
+    centroids = dict()
+    confidences = np.sum(predictions, axis=0)
+    for i, confidence in enumerate(confidences):
+        if confidence >= 1:
+            max_indx = np.argmax(predictions[:,i]).item()
+            centroidx = 0.5 + (max_indx%3)
+            centroidy = 2.5 - (max_indx/3)
+            for segment, direction in adjacent_segments[str(max_indx)]:
+                direction_tuple = move_value[direction]
+                segment_confidence = predictions[segment][i].item() * 0.5
+                centroidx += direction_tuple[0] * segment_confidence
+                centroidy += direction_tuple[1] * segment_confidence
+            centroids[labels[i]] = (int(round(centroidx * dim)), int(round(centroidy * dim)))
+    return centroids
+
 if __name__ == '__main__':
     img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\100.jpg')
     #img = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\test.jpg')
 
-    start = time.time()
-    croppings = cropMobs(img, show=False)
-    for crop in croppings:
-        cv2.imshow('cropping', crop)
-        for i, segment in enumerate(segmentCrop(crop)):
-            cv2.imshow('c' + str(i), segment)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-    print(time.time() - start)
+    cropMob(img, show=True)
+    # start = time.time()
+    # croppings = cropMobs(img, show=False)
+    # for crop in croppings:
+    #     cv2.imshow('cropping', crop)
+    #     for i, segment in enumerate(segmentCrop(crop)):
+    #         cv2.imshow('c' + str(i), segment)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
+    #
+    # print(time.time() - start)

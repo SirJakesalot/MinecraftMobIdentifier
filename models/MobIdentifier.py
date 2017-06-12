@@ -5,8 +5,11 @@ from sklearn import model_selection
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
+
 from opencv.DatasetCreator import DatasetCreator
 from opencv.cropper import *
+
+import numpy as np
 
 
 class MobIdentifier(DatasetCreator):
@@ -141,7 +144,7 @@ if __name__ == '__main__':
     mi = MobIdentifier(config)
     segment_dim = 24
     # number of non-black pixels has to be greater than this in the segment
-    segment_nonzero_thresh = int((segment_dim**2) * 0.5) * 3
+    segment_nonzero_thresh = int((segment_dim**2) * 0.3) * 3
 
     # How to save a new model
     # mi.loadDataset(mi.boxNoBackgroundPath, -1, use_pixels=True, use_segments=True, segment_dim=segment_dim)
@@ -154,25 +157,36 @@ if __name__ == '__main__':
     mi.loadModel('rfc', 'rfc_model.sav')
 
     #test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-pigs-and-sheep\cropped\box\plain\24\29.jpg')
-    test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\136.jpg')
+    test = readImg(r'C:\Users\armentrout\Documents\GitHub\MinecraftObjectRecognition\agents\imgs\-mobs\originals\110.jpg')
     print('Label ordering: {0}'.format(mi.mobs))
     for crop in cropMobs(test):
         print('')
 
         start = time.time()
+        p = []
         for i, segment in enumerate(segmentCrop(crop)):
             noBackground = rmBackground(segment)
-            if np.count_nonzero(noBackground) > segment_nonzero_thresh:
+            resized = resize(noBackground, segment_dim)
+            if np.count_nonzero(resized) > segment_nonzero_thresh:
                 # convert segment to feature vector
-                resized = resize(noBackground, segment_dim)
+
                 features = resized.flatten().reshape(1,-1)
                 rfcPreds = mi.rfc.predict_proba(features)[0]
+                p.append(rfcPreds)
                 #knnPreds = mi.knn.predict_proba(features)[0]
                 print('Segment {0}: {1}'.format(i, rfcPreds))
             else:
+                p.append([0,0,0,0,0])
                 print('Segment {0}: Mostly background'.format(i))
 
             cv2.imshow('Segment ' + str(i), resize(noBackground, 100))
+        centroids = findCentroids(mi.mobId2Label, np.array(p), segment_dim)
+        t = resize(crop, 72)
+        for mn, (x,y) in centroids.items():
+            print(mn, (x,y))
+            cv2.circle(t, (x,72-y), 2, [0,255,0])
+        cv2.imshow('test', t)
+
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
