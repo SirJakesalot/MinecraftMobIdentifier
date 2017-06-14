@@ -17,6 +17,10 @@ def convertGray(img):
     '''Convert image to grayscale'''
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+def convertHSV(img):
+    '''Convert image to grayscale'''
+    return cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
 def isGrayScale(img):
     '''Simple check to see if image is grayscale'''
     return type(img[0][0]) == np.uint8
@@ -37,7 +41,7 @@ def getImgHist(img):
         hist = cv2.calcHist([hsv],
                             [0,1,2],
                             None,
-                            (8,8,8),
+                            (180,256,256),
                             [0,180,0,256,0,256])
     return cv2.normalize(hist, hist)
 
@@ -63,7 +67,7 @@ def rmNoise(img):
 
 def getEdges(img):
     '''Find edges in the image'''
-    return cv2.Canny(img, 50, 50)
+    return cv2.Canny(convertGray(img), 50, 50)
 
 def resize(img, dim, aspect=False):
     '''Resize the image'''
