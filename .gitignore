@@ -96,5 +96,6 @@ examples/google_search
 agents/imgs/*
 agents/mission_records
 agents/ffmpeg.out
-agent/data.tgz
+agents/data.tgz
+agents/data/*
 
