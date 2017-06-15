@@ -149,9 +149,9 @@ opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40
 Every model that we have tested has its tradeoffs which can be seen in the statistics. For instance, using RGB values requires feature vectors of size 24x24x3 but has above average accuracy. We can make statements such as the following "The RGB model requires feature vectors of size 1728 while the Grayscale model only has feature vectors of size 576. Though, when using the RGB model it requires less than half of the number of images required by Grayscale and has greater accuracy.". It was also surprising to find that only evaluating single color values had comparable performance to using all color values (e.g. RGB). In particular, using simple HSVs hue and saturation individually out performed using all RGB values.
 
 Start of the training
-<a href="media/training_start.png"><img src="media/training_start.png" width="200" height="auto"/></a>
+<br><a href="media/training_start.png"><img src="media/training_start.png" width="200" height="auto"/></a>
 Training in-progress
-<a href="media/training_inprogress.png"><img src="media/training_inprogress.png" width="200" height="auto"/></a>
+<br><a href="media/training_inprogress.png"><img src="media/training_inprogress.png" width="200" height="auto"/></a>
 
 # References
 Here are a list of references we frequently used:
