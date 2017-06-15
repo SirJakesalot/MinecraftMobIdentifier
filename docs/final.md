@@ -145,7 +145,12 @@ opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40
 
 # Evaluation
 
+We originally we had a static dataset containing ~5300 images and we were able to predict with surprising accuracy (~98%) for several different types of datasets (e.g. grayscale, edge detection). We wanted to see exactly how many of these images were required to achieve this level of accuracy.
+
 Every model that we have tested has its tradeoffs which can be seen in the statistics. For instance, using RGB values requires feature vectors of size 24x24x3 but has above average accuracy. We can make statements such as the following "The RGB model requires feature vectors of size 1728 while the Grayscale model only has feature vectors of size 576. Though, when using the RGB model it requires less than half of the number of images required by Grayscale and has greater accuracy.". It was also surprising to find that only evaluating single color values had comparable performance to using all color values (e.g. RGB). In particular, using simple HSVs hue and saturation individually out performed using all RGB values.
+
+Below are some screenshots of the model starting training and while it was in progress. We have some empty subplots because we were planning on adding more features to be tested (e.g. HSL, color histograms).
+
 
 Start of the training
 
@@ -154,6 +159,9 @@ Start of the training
 Training in-progress
 
 <br><a href="media/training_inprogress.png"><img src="media/training_inprogress.png" width="500" height="auto"/></a>
+
+We planned on running each model until the number of correct predictions / total number of predictions was around 99%. Once this happened we would compare its accuracy and number of images needed for training the original static dataset. Unfortunately we ran out of time!
+
 
 # References
 Here are a list of references we frequently used:
