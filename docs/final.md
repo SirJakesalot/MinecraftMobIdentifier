@@ -26,7 +26,8 @@ We wanted to be able to accurately identify mobs in the world using only images.
 As we were figuring out how to approach the problem we tried **MANY** things (described in Approaches). We first needed an image dataset. We ended up spawning an agent in a world with a single mob and taking thousands screenshots. We then applied different image manipulations to these images and trained different models to test which features/models to use. We decided to use sklearns Random Forest Classifier based on these results.
 
 We then decided that we should automate an agent to build this dataset. We spawned an agent with 4 mobs surrounding the agent at fixed locations (random distance away from the agent) and continued to turn 90 degrees to look at the mob and take screenshots. When all 4 mobs were seen we sent a Minecraft console command to kill all mobs and repeated the process. Below is an image representation:
-<a href="media/dataset_creation_agent.png"><img src="media/dataset_creation_agent.png" /></a>
+
+<br><a href="media/dataset_creation_agent.png"><img src="media/dataset_creation_agent.png" /></a>
 
 ## Iterative Model Training
 As we create the above dataset we also run image manipulations on each mob we see (e.g. grayscale, edge detection). We use these image manipulations as the training features for different classifiers. These classifiers initially start with **EMPTY** subsets of the master dataset. When the model sees a label it has not seen before, it simply adds the label and its image manipulation to its feature data. If the model has seen the label before, it tries to classify that cropping. If it classifys **WRONG**, it adds the cropping to that models data. If it classifys **RIGHT**, it simply moves on. By doing this, we are performing hard negative mining. Meaning, we only add croppings to the models when we classify wrong. We only try not to add images of mobs that we know we can correctly classify.
@@ -53,9 +54,9 @@ As described in the second video above, we trained a model with segmented images
 ### Checking Accuracy
 With the centroids from above, we would then query the Malmo grid and try to draw vectors from the image world to the grid world. We would use the knowledge from the center of the screen and the angle for which the centroid was predicted to draw a vector in the general direction of the mob in the image and map it to the grid world. 
 We can use this information to face each mob we predict if we wanted to by using the angle as the yaw of which to turn. Below is an example of us drawing a vector from a centroid.
-<a href="media/Detector-Line-Of-Sight.png"><img src="media/Detector-Line-Of-Sight.png" /></a>
+<br><a href="media/Detector-Line-Of-Sight.png"><img src="media/Detector-Line-Of-Sight.png" /></a>
 This became a large problem when we were trying to determine what our "cone of vision" was for our agent. This was critical it determined the accuracy of the centroids and their predictions. We first thought we could do this with Malmo by using the ObservationFromRay feature but this required that we actually look at the mob with our crosshairs in game. This feature gave us information like what the mob/block that we were looking at and its location in Minecraft. We could not use this reliably because during the time it would take to look at each centroid we predicted the mobs could have moved since then.
-<a href="media/cone_of_vision.png"><img src="media/cone_of_vision.png" /></a>
+<br><a href="media/cone_of_vision.png"><img src="media/cone_of_vision.png" /></a>
 
 To show our progress on this, the video above shows how we went about segmenting the image and some actual centroids we were able to predict/draw.
 Due to time constraints we had to leave it at that. We did spend time researching how to get around this and experimented with different tools but we were not able to build a module that would solve this problem reliably.
@@ -68,11 +69,69 @@ We had to change the agent to be stationary with only single mobs in its view so
 
 ## Dataset Creation
 At first we thought that we could scrape the images from the web (e.g. Google image search, Minecraft Wiki) but quickly found that there is too much noise in the datasets we created from that. At first they seemed okay but as you venture down the search results you can see the noise.
-<a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="200" height="auto"/></a>
-<a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="200" height="auto"/></a>
-We then decided that we could get a lot more images from playing Minecraft and gathering screenshots as we played. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
+<br><a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="200" height="auto"/></a>
+<br><a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="200" height="auto"/></a>
+
+We then decided that we could get a lot more images from playing Minecraft and gathering screenshots as we for each frame. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
 
 ## Model Training
+
+Here are the steps taken to process the frame given from Malmo to train each model:
+```python
+frame = getFrame()              # convert the frame from 1d array to image with channels
+mob = cropMob(frame)            # crop the mob
+resized = resize(mob, (24,24))  # resize to 24x24 for consistency among crops
+isNewLabel = checkLabelExists() # check if this label has been seen before
+dataset.addImg(label, mob)      # add mob cropping to master dataset
+
+if isNewLabel:
+    # create new label with its image and retrain the model
+    for model in self.models:
+        manipulation = model.manipulate(mob) # apply manipulations to the mob
+        model.addImg(manipulation) # apply manipulations to the image and add to its training data
+        model.train()
+    return
+
+# loop over different datasets, models, image manipulations
+for model in models:
+    manipulation = model.manipulate(mob)
+    pred = model.predict(manipulation)
+    if pred == label:
+        # update statistics that it was correct
+    else:
+        # update statistics that it was wrong
+        model.addImg(manipulation)
+        model.train()
+```
+
+### OpenCV Haar Cascades
+
+Object Detection using Haar feature-based cascade classifiers is a machine learning based approach where a cascade function is trained from a lot of *positive* and *negative* images. It is then used to detect objects in other images. It will search the image for your trained object and draw a box around it if/when it thinks it seen it. Positive images are croppings of the image you want to detect. Negative images are of everything EXCEPT the object you want to detect. Both sets are grayscale.
+
+We used our mob croppings as our positives and ~2000 images of an empty superflat world as our negatives. OpenCV then creates $x$ amount of image samples by superimposing the positive images onto the negative images with tunable variations (roations, pixel manipulations, etc).
+
+We trained ~50 classifiers to try and detect single mobs (e.g. pigs) and mobs in general in the image. Each classifiers training time greatly depends on the parameters you set for the training. For us, it ranged from 5 minutes to 3+ days. The more samples you train with the longer it takes. We were expecting the high performance in the Minecraft world but each model we tried ended up with too many false positives. To combat this we did "hard negative mining" which was taking all the false positives the model predicted (images of the background) and using them as negative images when we retrained the model. For single mobs this produces about 70% accuracy of producing "good" bounding boxes. For multiple mobs the accuracy was very poor.
+
+<a href="media/haar_cascade_example.png"><img src="media/haar_cascade_example.png" /></a>
+
+Types of training variations we employed
+1. positive image dimensions [24x24, 30x30, 40x40, 50x50]
+2. negative image dimensions [24x24, 40x30, 60x46, 80x60]
+3. number of positive images [50, 100, 200, 400, 800, 1000, 2000]
+3. number of negative images [50, 100, 200, 400, 800, 1000, 2000]
+4. number of hard negatives [50, 100, 200, 400]
+5. single mob positives
+6. all mob positives
+7. feature type [haar, lbp]
+8. positive images with background removed
+9. positive images with aspect ratio maintained
+
+Sample command we used to train
+```bash
+opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40 -h 30 -data classifiers/40x30_30/all-mobs-10000 -vec all-mobs-10000.vec -bg all-negs.txt -numNeg 1800 -numPos 9000
+```
+
+Unfortunately the time it took for us to try and increase performance with this approach was very costly. It took a lot of research/tinkering and have decided to go with another method of drawing these bounding boxes. We chalked up our losses and skipped to solving task 2.
 
 
 ## STOP
