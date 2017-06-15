@@ -46,8 +46,10 @@ There were many more that we thought of but decided to show these in the video
 
 ## Moonshot Attempt - Identifying Multiple Mobs
 We attempted to find a solution for identifying multiple mobs and pin-pointing where the mob is in Minecraft so we could check our accuracy.
+
 ### Identifying Multiple Mobs in a Cropping
 As described in the second video above, we trained a model with segmented images and predicted their centroids.
+
 ### Checking Accuracy
 With the centroids from above, we would then query the Malmo grid and try to draw vectors from the image world to the grid world. We would use the knowledge from the center of the screen and the angle for which the centroid was predicted to draw a vector in the general direction of the mob in the image and map it to the grid world. 
 We can use this information to face each mob we predict if we wanted to by using the angle as the yaw of which to turn. Below is an example of us drawing a vector from a centroid.
@@ -66,9 +68,12 @@ We had to change the agent to be stationary with only single mobs in its view so
 
 ## Dataset Creation
 At first we thought that we could scrape the images from the web (e.g. Google image search, Minecraft Wiki) but quickly found that there is too much noise in the datasets we created from that. At first they seemed okay but as you venture down the search results you can see the noise.
-<a href="media/google_imge_search.png"><img src="media/google_imge_search.png" /></a>
-<a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" /></a>
+<a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="200" height="auto"/></a>
+<a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="200" height="auto"/></a>
 We then decided that we could get a lot more images from playing Minecraft and gathering screenshots as we played. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
+
+## Model Training
+
 
 ## STOP
 
