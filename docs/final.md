@@ -23,7 +23,7 @@ We were experimenting with ways to find and identify multiple mobs in the same i
 We wanted to be able to accurately identify mobs in the world using only images. Initially, we also wanted to be able to locate mobs in the Malmo world as well but as we came to understand the complexity of this problem we were forced to simplify it. The details of our attempts will be in the **Approach** section. Our simplified goal was to take an image of a single mob in a static superflat world and accurately classify what mob it was. This was very successful and easy to do. We wanted to make the project interesting so we asked ourselves "Just how many images does our classifier need to be accurate?" Our goal became how to run experiments in Malmo to test different datasets to see which one would be the smallest, most accurate, etc.
 
 ## Dataset Creation
-As we were figuring out how to approach the problem we tried **MANY** things (described in Approaches). We first needed an image dataset. We ended up spawning an agent in a world with a single mob and taking thousands screenshots. We then applied different image manipulations to these images and trained different models to test which features/models to use. We decided to use sklearns Random Forest Classifier based on these results.
+As we were figuring out how to approach the problem we tried **MANY** things. We first needed an image dataset. We ended up spawning an agent in a world with a single mob and taking thousands screenshots. We then applied different image manipulations to these images and trained different models to test which features/models to use. We decided to use sklearns Random Forest Classifier based on these results.
 
 We then decided that we should automate an agent to build this dataset. We spawned an agent with 4 mobs surrounding the agent at fixed locations (random distance away from the agent) and continued to turn 90 degrees to look at the mob and take screenshots. When all 4 mobs were seen we sent a Minecraft console command to kill all mobs and repeated the process. Below is an image representation:
 
@@ -106,6 +106,9 @@ for model in models:
         model.addImg(manipulation)
         model.train()
 ```
+
+When we save the image to the dataset it is important to note that we do not save the whole image. We simply save the file path in a file that represents each model.
+
 ### Finding Centroids
 We reduced our problem of finding the centroids of each Minecraft MOB in an agents view to finding the centroids of each Minecraft MOB in the individual image croppings (of the agents view) generated using our cropper program. Our cropping program will generate two types of croppings: 1) A cropping containing one MOB (in which one centroid must be found), and 2) A cropping containing multiple MOBs (in which multiple centroids must be found). Below is a breakdown of the complications, methods and accuracies for both categories.
 
@@ -140,12 +143,20 @@ Sample command we used to train
 opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40 -h 30 -data classifiers/40x30_30/all-mobs-10000 -vec all-mobs-10000.vec -bg all-negs.txt -numNeg 1800 -numPos 9000
 ```
 
-## STOP
-
-
-
-Every model has its tradeoffs which can be seen in the statistics. For instance, using RGB values requires feature vectors of size 24x24x3 and has
 
 # Evaluation
-# References
 
+Every model that we have tested has its tradeoffs which can be seen in the statistics. For instance, using RGB values requires feature vectors of size 24x24x3 but has above average accuracy. We can make statements such as the following "The RGB model requires feature vectors of size 1728 while the Grayscale model only has feature vectors of size 576. Though, when using the RGB model it requires less than half of the number of images required by Grayscale and has greater accuracy.". It was also surprising to find that xxxxx
+
+<a href="media/training_start.png"><img src="media/training_start.png"/></a>
+<a href="media/training_inprogress.png"><img src="media/training_inprogress.png"/></a>
+
+# References
+Here are a list of references we frequently used:
+- <a href="keras.io">keras.io</a>
+- <a href="http://microsoft.github.io/malmo/0.21.0/Documentation/index.html">Malmo Docs</a>
+- <a href="https://images.google.com">Google Images</a>
+- <a href="http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html">Opencv Tutorials</a>
+- <a href="https://www.tensorflow.org/tutorials/image_recognition">Tensorflow Inception Model</a>
+- <a href="http://minecraft.gamepedia.com/">Minecraft Wiki</a>
+- <a href="http://www.deeplearningbook.org">Deep Learning Book</a>
