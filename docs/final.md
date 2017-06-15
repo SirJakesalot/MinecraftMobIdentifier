@@ -54,8 +54,11 @@ As described in the second video above, we trained a model with segmented images
 ### Checking Accuracy
 With the centroids from above, we would then query the Malmo grid and try to draw vectors from the image world to the grid world. We would use the knowledge from the center of the screen and the angle for which the centroid was predicted to draw a vector in the general direction of the mob in the image and map it to the grid world. 
 We can use this information to face each mob we predict if we wanted to by using the angle as the yaw of which to turn. Below is an example of us drawing a vector from a centroid.
+
 <br><a href="media/Detector-Line-Of-Sight.png"><img src="media/Detector-Line-Of-Sight.png" /></a>
+
 This became a large problem when we were trying to determine what our "cone of vision" was for our agent. This was critical it determined the accuracy of the centroids and their predictions. We first thought we could do this with Malmo by using the ObservationFromRay feature but this required that we actually look at the mob with our crosshairs in game. This feature gave us information like what the mob/block that we were looking at and its location in Minecraft. We could not use this reliably because during the time it would take to look at each centroid we predicted the mobs could have moved since then.
+
 <br><a href="media/cone_of_vision.png"><img src="media/cone_of_vision.png" /></a>
 
 To show our progress on this, the video above shows how we went about segmenting the image and some actual centroids we were able to predict/draw.
