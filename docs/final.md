@@ -72,8 +72,8 @@ We had to change the agent to be stationary with only single mobs in its view so
 
 ## Dataset Creation
 At first we thought that we could scrape the images from the web (e.g. Google image search, Minecraft Wiki) but quickly found that there is too much noise in the datasets we created from that. At first they seemed okay but as you venture down the search results you can see the noise.
-<br><a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="200" height="auto"/></a>
-<br><a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="200" height="auto"/></a>
+<br><a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="400" height="auto"/></a>
+<br><a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="400" height="auto"/></a>
 
 We then decided that we could get a lot more images from playing Minecraft and gathering screenshots for each frame. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
 
@@ -149,9 +149,9 @@ opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40
 Every model that we have tested has its tradeoffs which can be seen in the statistics. For instance, using RGB values requires feature vectors of size 24x24x3 but has above average accuracy. We can make statements such as the following "The RGB model requires feature vectors of size 1728 while the Grayscale model only has feature vectors of size 576. Though, when using the RGB model it requires less than half of the number of images required by Grayscale and has greater accuracy.". It was also surprising to find that only evaluating single color values had comparable performance to using all color values (e.g. RGB). In particular, using simple HSVs hue and saturation individually out performed using all RGB values.
 
 Start of the training
-<br><a href="media/training_start.png"><img src="media/training_start.png" width="200" height="auto"/></a>
+<br><a href="media/training_start.png"><img src="media/training_start.png" width="500" height="auto"/></a>
 Training in-progress
-<br><a href="media/training_inprogress.png"><img src="media/training_inprogress.png" width="200" height="auto"/></a>
+<br><a href="media/training_inprogress.png"><img src="media/training_inprogress.png" width="500" height="auto"/></a>
 
 # References
 Here are a list of references we frequently used:
