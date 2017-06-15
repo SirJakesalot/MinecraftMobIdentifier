@@ -75,7 +75,7 @@ At first we thought that we could scrape the images from the web (e.g. Google im
 <br><a href="media/google_imge_search.png"><img src="media/google_imge_search.png" width="200" height="auto"/></a>
 <br><a href="media/google_imge_search2.png"><img src="media/google_imge_search2.png" width="200" height="auto"/></a>
 
-We then decided that we could get a lot more images from playing Minecraft and gathering screenshots as we for each frame. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
+We then decided that we could get a lot more images from playing Minecraft and gathering screenshots for each frame. We decided to automate dataset creation by building an agent that would look at different mobs and crop them through a series of image manipulations.
 
 ## Model Training
 
@@ -106,6 +106,12 @@ for model in models:
         model.addImg(manipulation)
         model.train()
 ```
+### Finding Centroids
+We reduced our problem of finding the centroids of each Minecraft MOB in an agents view to finding the centroids of each Minecraft MOB in the individual image croppings (of the agents view) generated using our cropper program. Our cropping program will generate two types of croppings: 1) A cropping containing one MOB (in which one centroid must be found), and 2) A cropping containing multiple MOBs (in which multiple centroids must be found). Below is a breakdown of the complications, methods and accuracies for both categories.
+
+Single MOB croppings- Single MOB croppings were the easiest to find the centroid. There were next to no issues finding the correct location of the centroid, as essentially all of the cropping contained the MOB of interest and any parts of the cropping not belonging to MOB of interest, was deemed as background with near perfet accuracy. The only issue with finding a centroid for a single MOB cropping was a misclassification of the MOB. If the MOB belonged to the set {Cow, Mushroom cow, Pig}, then our random forest classifier predicted the MOB correctly close to 100% of the time. The only time that the random forest classifier had a harder time correctly classifying the MOB was when the MOB belonged to the set {Chicken, Sheep}, as both chickens and sheeps were of the color white, and were not always easily distinguishable.
+
+Multiple MOB croppings- Multiple MOB croppings had essentially the same issues as single MOB croppings in terms of MOB classification. Hence, where our centroid program struggled the most, was not classifying the MOBs correctly, but in determing where and how many centroids to create. The way we determined the locations of our centroids is as follows: We split up the image cropping into 9 (3x3) equally sized image segments, and ran each segment through our random forest classifier to obtain the confidences that the classifier had, that each segment contained each particular MOB. We then created a centroid for every MOB and discarded the centroid if the total confidence of any particular MOB (Sum_over_all_segments(confidence_of_segment(MOB_type)) was below a particular threshold. After obtaining the believed to correct number of centroids, we proceeded to find the locations of each. This was done by placing the centroid in the center of the segment that had the highest confidence that the MOB was in that segment, and then adjusted the location based on the confidences of the segments around it. Since it was common that there were extra and/or misclassified centroids for MOBs in set {Chicken, Sheep}, we increased the threshold that the total confidences must exceed in order to keep the centroid for both chicken and sheeps. This led to better accuracy in MOB classifications and a reduction in amount of incorrect centroids being created, at the expense of not always finding a centroid of each MOB.
 
 ### OpenCV Haar Cascades
 
@@ -134,12 +140,7 @@ Sample command we used to train
 opencv_traincascade -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 40 -h 30 -data classifiers/40x30_30/all-mobs-10000 -vec all-mobs-10000.vec -bg all-negs.txt -numNeg 1800 -numPos 9000
 ```
 
-Unfortunately the time it took for us to try and increase performance with this approach was very costly. It took a lot of research/tinkering and have decided to go with another method of drawing these bounding boxes. We chalked up our losses and skipped to solving task 2.
-
-
 ## STOP
-
-
 
 
 
