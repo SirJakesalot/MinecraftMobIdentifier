@@ -1,7 +1,7 @@
 # MinecraftObjectRecognition
 UCI CS 175,  public repository documenting our group project
 
-link to [project site](https://sirjakesalot.github.io/MinecraftObjectRecognition/index.html)
+link to [project site](https://sirjakesalot.github.io/MinecraftMobIdentifier/index.html)
 
 ## Tensorflow Setup ##
 [install tensorflow](https://www.tensorflow.org/install/)
